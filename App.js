@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import React, {useState, useEffect} from 'react';
+import {Text, View, StyleSheet} from 'react-native';
+import {BarCodeScanner} from 'expo-barcode-scanner';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
@@ -9,37 +9,44 @@ export default function App() {
     const [scanned, setScanned] = useState(false);
     const [dataArray, setDataArray] = useState([]);
     const [file, setFile] = useState('');
-
-    const today = new Date()
-
+    const [path, setPath] = useState(null)
+    const today = new Date();
     useEffect(() => {
         const getBarCodeScannerPermissions = async () => {
-            const { status } = await BarCodeScanner.requestPermissionsAsync();
+            const {status} = await BarCodeScanner.requestPermissionsAsync();
             setHasPermission(status === 'granted');
         };
 
         getBarCodeScannerPermissions();
-
     }, []);
 
+    useEffect(() => {
+        const getDirectoryPermissions = async () => {
+            const {status, directoryUri} = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
+            if (status === 'granted') {
+                setPath(directoryUri)
+            }
+        }
+        getDirectoryPermissions()
+    }, [])
+    useEffect(() => {
+        const saveFile = async () => {
+            let fileUri = path + "text.txt";
+            await FileSystem.writeAsStringAsync(fileUri, file, {encoding: FileSystem.EncodingType.UTF8});
+            const asset = await MediaLibrary.createAssetAsync(fileUri)
+            await MediaLibrary.createAlbumAsync("Barcodes", asset, false)
+        }
+        const intervalID = setInterval(saveFile, 30000)
+        return () => clearInterval(intervalID)
+    }, [file, path])
 
 
-
-    const handleBarCodeScanned = ({ type, data }) => {
+    const handleBarCodeScanned = ({type, data}) => {
         setScanned(true);
         setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод ${type}  ${data}`])
         setFile(dataArray.toString())
         setTimeout(setScanned, 2000, false)
     };
-    const saveFile = async () => {
-        alert('создаю хуйню')
-        let fileUri = FileSystem.documentDirectory + "barcodes.txt";
-        await FileSystem.writeAsStringAsync(fileUri, file, { encoding: FileSystem.EncodingType.UTF8 });
-        const asset = await MediaLibrary.createAssetAsync(fileUri)
-        await MediaLibrary.createAlbumAsync("Download", asset, false)
-        
-    }
-    setInterval(saveFile, 30000)
 
     if (hasPermission === null) {
         return <Text>Requesting for camera permission</Text>;
