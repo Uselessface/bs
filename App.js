@@ -1,15 +1,15 @@
 import React, {useState, useEffect} from 'react';
 import {Text, View, StyleSheet} from 'react-native';
 import {BarCodeScanner} from 'expo-barcode-scanner';
-import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
+import {StorageAccessFramework} from "expo-file-system";
 
 export default function App() {
     const [hasPermission, setHasPermission] = useState(null);
     const [scanned, setScanned] = useState(false);
     const [dataArray, setDataArray] = useState([]);
     const [file, setFile] = useState('');
-    const [path, setPath] = useState(null)
+    const [path, setPath] = useState('')
     const today = new Date();
     useEffect(() => {
         const getBarCodeScannerPermissions = async () => {
@@ -21,31 +21,50 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        const getDirectoryPermissions = async () => {
-            const {status, directoryUri} = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
-            if (status === 'granted') {
-                setPath(directoryUri)
-            }
+        const getDirectory = async () =>{
+            const {directoryUri} = await StorageAccessFramework.requestDirectoryPermissionsAsync()
+            setPath(directoryUri)
         }
-        getDirectoryPermissions()
+        getDirectory()
     }, [])
+
     useEffect(() => {
         const saveFile = async () => {
-            let fileUri = path + "text.txt";
-            await FileSystem.writeAsStringAsync(fileUri, file, {encoding: FileSystem.EncodingType.UTF8});
-            const asset = await MediaLibrary.createAssetAsync(fileUri)
-            await MediaLibrary.createAlbumAsync("Barcodes", asset, false)
+            try {
+                // Get the directory uri that was approved
+                let data = file
+                // Create file and pass it's SAF URI
+                await StorageAccessFramework.createFileAsync(
+                    path,
+                    "barcodes",
+                    "text/plain"
+                )
+                    .then(async (fileUri) => {
+                        // Save data to newly created file
+                        await FileSystem.writeAsStringAsync(fileUri, data, {
+                            encoding: FileSystem.EncodingType.UTF8
+                        })
+                    })
+                    .catch((e) => {
+                        console.log(e)
+                    })
+
+            } catch (err) {
+                console.warn(err)
+            }
         }
+
         const intervalID = setInterval(saveFile, 30000)
+
         return () => clearInterval(intervalID)
-    }, [file, path])
+    }, [file])
 
 
     const handleBarCodeScanned = ({type, data}) => {
         setScanned(true);
-        setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод ${type}  ${data}`])
-        setFile(dataArray.toString())
-        setTimeout(setScanned, 2000, false)
+        setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод  ${data}`])
+        setFile(dataArray.join('; \n'))
+        setTimeout(setScanned, 250, false)
     };
 
     if (hasPermission === null) {
