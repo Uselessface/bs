@@ -64,7 +64,7 @@ export default function App() {
         setScanned(true);
         setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод  ${data}`])
         setFile(dataArray.join('; \n'))
-        setTimeout(setScanned, 250, false)
+        setTimeout(setScanned, 500, false)
     };
 
     if (hasPermission === null) {
