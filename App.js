@@ -83,7 +83,7 @@ export default function App() {
     const handleBarCodeScanned = ({data}) => {
         setScanned(true);
         setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод  ${data}`])
-        setTimeout(() => setScanned(false), 250)
+        setTimeout(() => setScanned(false), 500)
     };
 
     if (hasPermission === null) {
