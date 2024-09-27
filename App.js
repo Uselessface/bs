@@ -25,7 +25,9 @@ export default function App() {
             setPath(directoryUri)
         }
         getDirectory()
-    }, [])
+    }, []);
+
+
     useEffect(() => {
         const saveFile = async () => {
             try {
@@ -52,7 +54,7 @@ export default function App() {
         }
         const intervalID = setInterval(saveFile, 30000)
         return () => clearInterval(intervalID)
-    }, [])
+    }, [file]);
     useEffect(() => {
         const uploadFile = async () => {
             try {
@@ -70,12 +72,12 @@ export default function App() {
                 console.warn(err)
             }
         }
-        const intervalID = setInterval(uploadFile, 60000)
+        const intervalID = setInterval(uploadFile, 65000)
         return () => clearInterval(intervalID)
-    }, [])
+    }, [file]);
     useEffect(() => {
         setFile(dataArray.join('; \n'))
-    }, [dataArray])
+    }, [dataArray]);
 
 
     const handleBarCodeScanned = ({data}) => {
