@@ -19,15 +19,13 @@ export default function App() {
 
         getBarCodeScannerPermissions();
     }, []);
-
     useEffect(() => {
-        const getDirectory = async () =>{
+        const getDirectory = async () => {
             const {directoryUri} = await StorageAccessFramework.requestDirectoryPermissionsAsync()
             setPath(directoryUri)
         }
         getDirectory()
     }, [])
-
     useEffect(() => {
         const saveFile = async () => {
             try {
@@ -48,23 +46,42 @@ export default function App() {
                     .catch((e) => {
                         console.log(e)
                     })
-
             } catch (err) {
                 console.warn(err)
             }
         }
-
         const intervalID = setInterval(saveFile, 30000)
-
         return () => clearInterval(intervalID)
-    }, [file])
+    }, [])
+    useEffect(() => {
+        const uploadFile = async () => {
+            try {
+                alert(file)
+                const url = 'http://192.168.0.229:3351'
+                await fetch(url, {
+                            method: 'POST',
+                            body: file,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                }
+                        })
+            } catch (err) {
+                console.warn(err)
+            }
+        }
+        const intervalID = setInterval(uploadFile, 60000)
+        return () => clearInterval(intervalID)
+    }, [])
+    useEffect(() => {
+        setFile(dataArray.join('; \n'))
+    }, [dataArray])
 
 
-    const handleBarCodeScanned = ({type, data}) => {
+    const handleBarCodeScanned = ({data}) => {
         setScanned(true);
         setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод  ${data}`])
-        setFile(dataArray.join('; \n'))
-        setTimeout(setScanned, 500, false)
+        setTimeout(() => setScanned(false), 250)
     };
 
     if (hasPermission === null) {
