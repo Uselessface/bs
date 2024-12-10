@@ -1,96 +1,65 @@
-import React, {useState, useEffect} from 'react';
-import {Text, View, StyleSheet} from 'react-native';
-import {CameraView, Camera} from "expo-camera";
-import * as FileSystem from 'expo-file-system';
-import {StorageAccessFramework} from "expo-file-system";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import BarcodeScanner from 'react-native-barcode-scanner-google';
+import RNFS from 'react-native-fs';
 
-export default function App() {
-    const [hasPermission, setHasPermission] = useState(null);
-    const [scanned, setScanned] = useState(false);
-    const [dataArray, setDataArray] = useState([]);
-    const [file, setFile] = useState('');
-    const [path, setPath] = useState('')
-    const today = new Date();
-    useEffect(() => {
-        const getBarCodeScannerPermissions = async () => {
-            const {status} = await BarCodeScanner.requestPermissionsAsync();
-            setHasPermission(status === 'granted');
-        };
+const App = () => {
+    const [barcodes, setBarcodes] = useState([]);
 
-        getBarCodeScannerPermissions();
-    }, []);
-
-    useEffect(() => {
-        const getDirectory = async () =>{
-            const {directoryUri} = await StorageAccessFramework.requestDirectoryPermissionsAsync()
-            setPath(directoryUri)
+    const saveToFile = async (data) => {
+        try {
+            const path = `${RNFS.DocumentDirectoryPath}/scanned_barcodes.txt`;
+            const content = data.join('\n');
+            await RNFS.writeFile(path, content, 'utf8');
+            console.log(`Файл сохранен по пути: ${path}`);
+        } catch (error) {
+            console.error('Ошибка при сохранении файла:', error);
         }
-        getDirectory()
-    }, [])
-
-    useEffect(() => {
-        const saveFile = async () => {
-            try {
-                // Get the directory uri that was approved
-                let data = file
-                // Create file and pass it's SAF URI
-                await StorageAccessFramework.createFileAsync(
-                    path,
-                    "barcodes",
-                    "text/plain"
-                )
-                    .then(async (fileUri) => {
-                        // Save data to newly created file
-                        await FileSystem.writeAsStringAsync(fileUri, data, {
-                            encoding: FileSystem.EncodingType.UTF8
-                        })
-                    })
-                    .catch((e) => {
-                        console.log(e)
-                    })
-
-            } catch (err) {
-                console.warn(err)
-            }
-        }
-
-        const intervalID = setInterval(saveFile, 30000)
-
-        return () => clearInterval(intervalID)
-    }, [file])
-
-
-    const handleBarCodeScanned = ({type, data}) => {
-        setScanned(true);
-        setDataArray([...dataArray, `${today.toLocaleString()} : Штрихкод  ${data}`])
-        setFile(dataArray.join('; \n'))
-        setTimeout(setScanned, 250, false)
     };
 
-    if (hasPermission === null) {
-        return <Text>Requesting for camera permission</Text>;
-    }
-    if (hasPermission === false) {
-        return <Text>No access to camera</Text>;
-    }
+    const onBarcodeRead = (event) => {
+        const { data } = event;
+        if (!barcodes.includes(data)) {
+            const updatedBarcodes = [...barcodes, data];
+            setBarcodes(updatedBarcodes);
+            saveToFile(updatedBarcodes);
+        }
+    };
 
     return (
         <View style={styles.container}>
-            <CameraView
-                barcodeScannerSettings={{
-                    barcodeTypes: ["qr", "pdf417","ean13","ean8","codabar"],
-                }}
-                onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-                style={StyleSheet.absoluteFillObject}
+            <BarcodeScanner
+                style={StyleSheet.absoluteFill}
+                onBarcodeRead={onBarcodeRead}
             />
+            <View style={styles.barcodeList}>
+                {barcodes.map((barcode, index) => (
+                    <Text key={index} style={styles.barcodeText}>
+                        {barcode}
+                    </Text>
+                ))}
+            </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        flexDirection: 'column',
-        justifyContent: 'center',
+    },
+    barcodeList: {
+        position: 'absolute',
+        bottom: 20,
+        left: 10,
+        right: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        padding: 10,
+        borderRadius: 10,
+    },
+    barcodeText: {
+        color: '#fff',
+        fontSize: 16,
     },
 });
+
+export default App;

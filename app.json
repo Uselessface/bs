@@ -7,8 +7,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "plugins": [
+      "expo-camera",
       [
-        "expo-camera"
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "isAccessMediaLocationEnabled": "true"
+        }
       ]
     ],
     "splash": {
